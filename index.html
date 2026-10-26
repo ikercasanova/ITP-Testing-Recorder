@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E3000F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Testing">
+<title>ITP Testing Recorder</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root {
+    --red: #E3000F;
+    --red-dark: #B8000C;
+    --bg: #F3F4F6;
+    --card: #FFFFFF;
+    --text: #111827;
+    --muted: #6B7280;
+    --line: #E5E7EB;
+    --good: #0F8A3C;
+    --good-bg: #E7F6EC;
+    --bad: #C81E1E;
+    --bad-bg: #FDECEC;
+    --gold: #B7791F;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--red); color: #fff;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; gap: 10px; }
+  header.top h1 { font-size: 18px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top .sub { font-size: 13px; opacity: .85; }
+  header.top .back { color: #fff; font-size: 28px; line-height: 1; padding: 0 8px 0 0; }
+
+  main { padding: 12px 16px; max-width: 640px; margin: 0 auto; }
+
+  .seg { display: flex; background: #E5E7EB; border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 12px; }
+  .seg button { flex: 1; padding: 10px 4px; border-radius: 9px; font-weight: 600; font-size: 15px; color: var(--muted); }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .chips { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chips button { padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-weight: 600; font-size: 14px; }
+  .chips button.on { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .stepper { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--muted); }
+  .stepper button { width: 36px; height: 36px; border-radius: 10px; background: #fff; border: 1px solid var(--line); font-size: 20px; font-weight: 600; }
+  .stepper b { color: var(--text); font-size: 18px; min-width: 20px; text-align: center; }
+  .progress { font-size: 14px; color: var(--muted); }
+  .progress b { color: var(--text); }
+
+  .list { background: var(--card); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; min-height: 60px; }
+  .row:last-child { border-bottom: 0; }
+  .row:active { background: #F9FAFB; }
+  .row .num { width: 22px; color: var(--muted); font-size: 13px; text-align: right; flex: none; }
+  .row .who { flex: 1; min-width: 0; }
+  .row .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .meta { font-size: 13px; color: var(--muted); }
+  .row.done .name::after { content: " ✓"; color: var(--good); }
+  .tag { font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: 2px; }
+  .dots { display: flex; gap: 4px; flex: none; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid #9CA3AF; }
+  .dot.f { background: var(--red); border-color: var(--red); }
+  header.top .dot { border-color: rgba(255,255,255,.7); }
+  header.top .dot.f { background: #fff; border-color: #fff; }
+
+  .btn { display: block; width: 100%; padding: 16px; border-radius: 14px; font-weight: 700; font-size: 17px; text-align: center; }
+  .btn.primary { background: var(--red); color: #fff; }
+  .btn.primary:active { background: var(--red-dark); }
+  .btn.ghost { background: #fff; border: 1px solid var(--line); }
+  .btn.small { padding: 12px; font-size: 15px; }
+  .btn + .btn { margin-top: 10px; }
+  .gap { height: 14px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .card h3 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+  .att { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+  .att:last-child { border-bottom: 0; }
+  .att .n { font-weight: 700; width: 28px; flex: none; }
+  .att .vals { flex: 1; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .att .edit { color: var(--muted); font-size: 13px; }
+  .att.editing { background: #FFF7E6; margin: 0 -14px; padding: 10px 14px; width: calc(100% + 28px); }
+
+  .field { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .field label { width: 92px; font-weight: 600; flex: none; }
+  .field input { flex: 1; min-width: 0; font-size: 24px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px;
+    font-variant-numeric: tabular-nums; background: #fff; color: var(--text); }
+  .field input:focus { outline: none; border-color: var(--red); }
+  .field .unit { width: 44px; color: var(--muted); font-size: 14px; flex: none; }
+
+  .fb { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .fb:last-child { border-bottom: 0; }
+  .fb .head { display: flex; align-items: baseline; justify-content: space-between; }
+  .fb .m { font-weight: 600; color: var(--muted); }
+  .fb .v { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .fb .lines { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .pill { font-size: 13px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: #F3F4F6; color: var(--muted); }
+  .pill.good { background: var(--good-bg); color: var(--good); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+  .pill.pb { background: #FEF3C7; color: #92400E; }
+
+  .rank { width: 30px; font-weight: 800; font-size: 17px; text-align: center; flex: none; }
+  .rank.r1 { color: #C99700; } .rank.r2 { color: #8A8F98; } .rank.r3 { color: #A0612B; }
+  .score { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .score small { display: block; font-size: 12px; font-weight: 600; }
+  .up { color: var(--good); } .down { color: var(--bad); } .flat { color: var(--muted); }
+  .empty { opacity: .5; }
+
+  .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); text-transform: uppercase; background: #FAFAFA; }
+  th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: #fff; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  th:first-child { background: #FAFAFA; }
+  td.top { color: var(--good); font-weight: 800; }
+  tr:last-child td { border-bottom: 0; }
+
+  .note { font-size: 13px; color: var(--muted); text-align: center; margin: 10px 0; }
+  .warn { background: var(--bad); color: #fff; padding: 10px 16px; font-weight: 600; text-align: center; }
+
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; background: #fff; border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom); }
+  nav.tabs button { flex: 1; padding: 10px 0 12px; font-size: 12px; font-weight: 600; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  nav.tabs button .ic { font-size: 22px; line-height: 1; }
+  nav.tabs button.on { color: var(--red); }
+
+  .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #111827; color: #fff;
+    padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; z-index: 9; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+<script src="data.js"></script>
+<script>
+const TESTS = {
+  sprint:    { name: 'Sprinting', short: 'Sprint',    measures: ['m5', 'm20', 'm30', 'yd40'], defaultAttempts: 2 },
+  agility:   { name: 'Agility 5-0-5', short: 'Agility',  measures: ['t505'], defaultAttempts: 2 },
+  endurance: { name: 'Endurance 30-15', short: 'Endurance', measures: ['ift'], defaultAttempts: 1 },
+};
+const MEASURES = {
+  m5:   { label: '5m',    unit: 's',    dp: 2, higher: false, min: 0.7, max: 2.0 },
+  m20:  { label: '20m',   unit: 's',    dp: 2, higher: false, min: 2.5, max: 4.5 },
+  m30:  { label: '30m',   unit: 's',    dp: 2, higher: false, min: 3.4, max: 6.0 },
+  yd40: { label: '40yd',  unit: 's',    dp: 2, higher: false, min: 4.0, max: 7.0 },
+  t505: { label: '5-0-5', unit: 's',    dp: 2, higher: false, min: 1.8, max: 3.5 },
+  ift:  { label: '30-15', unit: 'km/h', dp: 1, higher: true,  min: 10,  max: 25 },
+};
+const KEY = 'itp_testing_v1';
+
+// ---------- state ----------
+function freshState() {
+  return {
+    date: new Date().toISOString().slice(0, 10),
+    test: 'sprint',
+    attempts: { sprint: TESTS.sprint.defaultAttempts, agility: TESTS.agility.defaultAttempts, endurance: TESTS.endurance.defaultAttempts },
+    extra: [],                                   // added guests/trials
+    results: { sprint: {}, agility: {}, endurance: {} }, // test -> playerId -> [attempt]
+  };
+}
+let S = freshState();
+let saveOk = true;
+try {
+  const raw = localStorage.getItem(KEY);
+  if (raw) S = Object.assign(freshState(), JSON.parse(raw));
+} catch (e) { saveOk = false; }
+
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); saveOk = true; }
+  catch (e) { saveOk = false; }
+}
+
+// UI-only state
+const V = { tab: 'record', pid: null, editIdx: null, feedback: null, boardMeasure: { sprint: 'm30', agility: 't505', endurance: 'ift' } };
+
+// ---------- helpers ----------
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const players = () => ROSTER.concat(S.extra);
+const playerById = id => players().find(p => p.id === id);
+const attemptsOf = (test, pid) => S.results[test][pid] || [];
+const fmt = (m, v) => v == null ? '—' : Number(v).toFixed(MEASURES[m].dp);
+const better = (m, a, b) => MEASURES[m].higher ? a > b : a < b;
+
+function bestOf(m, values) {
+  let best = null;
+  for (const v of values) if (v != null && (best == null || better(m, v, best))) best = v;
+  return best;
+}
+const bestToday = (test, pid, m) => bestOf(m, attemptsOf(test, pid).map(a => a[m]));
+const pastList = (pid, m) => ((PAST[pid] || {})[m] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+const pastBest = (pid, m) => { const l = pastList(pid, m); if (!l.length) return null; const b = bestOf(m, l.map(x => x.value)); return l.find(x => x.value === b); };
+const pastLast = (pid, m) => { const l = pastList(pid, m); return l.length ? l[l.length - 1] : null; };
+function monthLabel(d) {
+  const [y, mo] = d.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo - 1] + ' ' + y;
+}
+function ordinal(n) { const s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+function ranking(test, m) {
+  return players()
+    .map(p => ({ p, best: bestToday(test, p.id, m) }))
+    .filter(x => x.best != null)
+    .sort((a, b) => MEASURES[m].higher ? b.best - a.best : a.best - b.best);
+}
+function rankOf(test, m, pid) {
+  const r = ranking(test, m);
+  const i = r.findIndex(x => x.p.id === pid);
+  return i < 0 ? null : { pos: i + 1, of: r.length };
+}
+
+// Difference shown as "how much better" (positive = improvement)
+function improvement(m, now, before) {
+  const d = MEASURES[m].higher ? now - before : before - now;
+  return Math.round(d * Math.pow(10, MEASURES[m].dp)) / Math.pow(10, MEASURES[m].dp);
+}
+function deltaText(m, d) {
+  const unit = MEASURES[m].unit;
+  const abs = Math.abs(d).toFixed(MEASURES[m].dp);
+  if (d === 0) return 'same';
+  if (MEASURES[m].higher) return (d > 0 ? '+' : '−') + abs + ' ' + unit;
+  return abs + unit + (d > 0 ? ' faster' : ' slower');
+}
+
+function nextPlayer(test, fromPid) {
+  const list = players();
+  const target = S.attempts[test];
+  const done = attemptsOf(test, fromPid).length;
+  const start = list.findIndex(p => p.id === fromPid);
+  // first: someone after this player who hasn't done this round yet
+  for (let k = 1; k <= list.length; k++) {
+    const p = list[(start + k) % list.length];
+    if (p.id !== fromPid && attemptsOf(test, p.id).length < Math.min(done, target)) return p;
+  }
+  // then: anyone still short of the target
+  for (let k = 1; k <= list.length; k++) {
+    const p = list[(start + k) % list.length];
+    if (p.id !== fromPid && attemptsOf(test, p.id).length < target) return p;
+  }
+  return null;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function dotsHTML(n, target) {
+  let h = '';
+  for (let i = 0; i < Math.max(n, target); i++) h += `<span class="dot${i < n ? ' f' : ''}"></span>`;
+  return `<span class="dots">${h}</span>`;
+}
+
+// ---------- views ----------
+function render() {
+  const app = document.getElementById('app');
+  let html = saveOk ? '' : '<div class="warn">Results are NOT being saved on this phone. Export often.</div>';
+  if (V.pid) html += viewPlayer();
+  else if (V.tab === 'record') html += viewRecord();
+  else if (V.tab === 'board') html += viewBoard();
+  else html += viewResults();
+  if (!V.pid) html += `
+    <nav class="tabs">
+      <button data-tab="record" class="${V.tab === 'record' ? 'on' : ''}"><span class="ic">⏱</span>Record</button>
+      <button data-tab="board" class="${V.tab === 'board' ? 'on' : ''}"><span class="ic">🏆</span>Leaderboard</button>
+      <button data-tab="results" class="${V.tab === 'results' ? 'on' : ''}"><span class="ic">▦</span>Results</button>
+    </nav>`;
+  app.innerHTML = html;
+}
+
+function testSeg() {
+  return `<div class="seg">${Object.entries(TESTS).map(([k, t]) =>
+    `<button data-test="${k}" class="${S.test === k ? 'on' : ''}">${t.short}</button>`).join('')}</div>`;
+}
+
+function viewRecord() {
+  const test = S.test, target = S.attempts[test];
+  const list = players();
+  const doneCount = list.filter(p => attemptsOf(test, p.id).length >= target).length;
+  const rows = list.map((p, i) => {
+    const atts = attemptsOf(test, p.id);
+    const shown = TESTS[test].measures.map(m => {
+      const b = bestToday(test, p.id, m);
+      return b == null ? null : `${MEASURES[m].label} ${fmt(m, b)}`;
+    }).filter(Boolean).join(' · ');
+    return `<button class="row${atts.length >= target ? ' done' : ''}" data-open="${esc(p.id)}">
+      <span class="num">${i + 1}</span>
+      <span class="who"><div class="name">${esc(p.name)}${p.guest ? '<span class="tag">GUEST</span>' : ''}</div>
+        <div class="meta">${shown || 'No attempts yet'}</div></span>
+      ${dotsHTML(atts.length, target)}
+    </button>`;
+  }).join('');
+  return `
+    <header class="top"><h1>${TESTS[test].name}</h1><span class="sub">${esc(S.date)}</span></header>
+    <main>
+      ${testSeg()}
+      <div class="bar">
+        <span class="progress"><b>${doneCount}</b> of ${list.length} done</span>
+        <span class="stepper">Attempts
+          <button data-step="-1" aria-label="Fewer attempts">−</button><b>${target}</b><button data-step="1" aria-label="More attempts">+</button>
+        </span>
+      </div>
+      <div class="list">${rows}</div>
+      <div class="gap"></div>
+      <button class="btn ghost small" data-act="add-player">+ Add player (guest / trial)</button>
+    </main>`;
+}
+
+function viewPlayer() {
+  const test = S.test, p = playerById(V.pid), atts = attemptsOf(test, p.id), target = S.attempts[test];
+  const ms = TESTS[test].measures;
+  const attRows = atts.map((a, i) => `
+    <button class="att${V.editIdx === i ? ' editing' : ''}" data-edit="${i}">
+      <span class="n">#${i + 1}</span>
+      <span class="vals">${ms.map(m => (ms.length > 1 ? MEASURES[m].label + ' ' : '') + fmt(m, a[m])).join(' · ')}${ms.length === 1 ? ' ' + MEASURES[ms[0]].unit : ''}</span>
+      <span class="edit">Edit</span>
+    </button>`).join('');
+
+  let body;
+  if (V.feedback) {
+    const next = nextPlayer(test, p.id);
+    body = `
+      <div class="card"><h3>Attempt ${V.feedback.idx + 1} saved</h3>${feedbackHTML(test, p.id, V.feedback.idx)}</div>
+      ${next ? `<button class="btn primary" data-act="next" data-next="${esc(next.id)}">Next: ${esc(next.name)} ›</button>`
+             : `<div class="note">Everyone has done ${target} attempt${target > 1 ? 's' : ''} 🎉</div>`}
+      <button class="btn ghost" data-act="another">+ Another attempt for ${esc(p.name.split(' ')[0])}</button>
+      <button class="btn ghost" data-act="back">Back to list</button>`;
+  } else {
+    const editing = V.editIdx != null;
+    const cur = editing ? atts[V.editIdx] : {};
+    body = `
+      <div class="card">
+        <h3>${editing ? 'Edit attempt ' + (V.editIdx + 1) : 'Attempt ' + (atts.length + 1)}</h3>
+        <form id="entry" autocomplete="off">
+          ${ms.map((m, i) => `
+            <div class="field">
+              <label for="in-${m}">${MEASURES[m].label}</label>
+              <input id="in-${m}" name="${m}" type="text" inputmode="decimal" enterkeyhint="${i === ms.length - 1 ? 'done' : 'next'}"
+                value="${cur[m] != null ? fmt(m, cur[m]) : ''}" placeholder="${MEASURES[m].higher ? '0.0' : '0.00'}">
+              <span class="unit">${MEASURES[m].unit}</span>
+            </div>`).join('')}
+          <button type="submit" class="btn primary">${editing ? 'Update attempt' : 'Save attempt'}</button>
+        </form>
+        ${editing ? `<div class="gap"></div><button class="btn ghost small" data-act="delete">Delete attempt ${V.editIdx + 1}</button>
+                     <button class="btn ghost small" data-act="cancel-edit">Cancel</button>` : ''}
+      </div>`;
+  }
+
+  return `
+    <header class="top"><button class="back" data-act="back" aria-label="Back">‹</button>
+      <h1>${esc(p.name)}</h1>${dotsHTML(atts.length, target)}</header>
+    <main>
+      ${atts.length ? `<div class="card"><h3>${TESTS[test].name} today</h3>${attRows}</div>` : ''}
+      ${body}
+      ${pastHTML(test, p.id)}
+    </main>`;
+}
+
+function pastHTML(test, pid) {
+  const lines = TESTS[test].measures.map(m => {
+    const b = pastBest(pid, m), l = pastLast(pid, m);
+    if (!b) return null;
+    return `<div class="meta">${MEASURES[m].label}: last ${fmt(m, l.value)} (${monthLabel(l.date)}) · best ${fmt(m, b.value)} (${monthLabel(b.date)})</div>`;
+  }).filter(Boolean);
+  if (!lines.length) return '';
+  return `<div class="card"><h3>Past testings</h3>${lines.join('')}</div>`;
+}
+
+function feedbackHTML(test, pid, idx) {
+  const atts = attemptsOf(test, pid);
+  const a = atts[idx];
+  return TESTS[test].measures.map(m => {
+    const v = a[m];
+    if (v == null) return '';
+    const pills = [];
+    // vs previous attempt today
+    let prev = null;
+    for (let i = idx - 1; i >= 0; i--) if (atts[i][m] != null) { prev = atts[i][m]; break; }
+    if (prev == null) pills.push('<span class="pill">First attempt</span>');
+    else {
+      const d = improvement(m, v, prev);
+      pills.push(`<span class="pill ${d > 0 ? 'good' : d < 0 ? 'bad' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : '='} ${deltaText(m, d)} vs last attempt</span>`);
+    }
+    // vs past testings
+    const pl = pastLast(pid, m), pb = pastBest(pid, m);
+    if (pl) {
+      const d = improvement(m, v, pl.value);
+      pills.push(`<span class="pill ${d > 0 ? 'good' : d < 0 ? 'bad' : ''}">${deltaText(m, d)} vs ${monthLabel(pl.date)}</span>`);
+    }
+    if (pb && better(m, v, pb.value)) pills.push('<span class="pill pb">★ New personal best</span>');
+    else if (pb) pills.push(`<span class="pill">Best ever ${fmt(m, pb.value)}</span>`);
+    // team rank (based on today's best)
+    const r = rankOf(test, m, pid);
+    if (r) pills.push(`<span class="pill">${ordinal(r.pos)} of ${r.of} today</span>`);
+    return `<div class="fb"><div class="head"><span class="m">${MEASURES[m].label}</span><span class="v">${fmt(m, v)} <small>${MEASURES[m].unit}</small></span></div>
+      <div class="lines">${pills.join('')}</div></div>`;
+  }).join('');
+}
+
+function viewBoard() {
+  const test = S.test, ms = TESTS[test].measures;
+  const m = ms.includes(V.boardMeasure[test]) ? V.boardMeasure[test] : ms[0];
+  const ranked = ranking(test, m);
+  const missing = players().filter(p => bestToday(test, p.id, m) == null);
+  const rows = ranked.map((x, i) => {
+    const pl = pastLast(x.p.id, m);
+    let vs = '';
+    if (pl) {
+      const d = improvement(m, x.best, pl.value);
+      vs = `<small class="${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${d > 0 ? '▲' : d < 0 ? '▼' : '='} ${deltaText(m, d)}</small>`;
+    }
+    return `<div class="row"><span class="rank r${i + 1}">${i + 1}</span>
+      <span class="who"><div class="name">${esc(x.p.name)}</div><div class="meta">${attemptsOf(test, x.p.id).length} attempt(s)${pl ? ' · last testing ' + fmt(m, pl.value) : ''}</div></span>
+      <span class="score">${fmt(m, x.best)}${vs}</span></div>`;
+  }).join('');
+  const rest = missing.map(p => `<div class="row empty"><span class="rank">–</span><span class="who"><div class="name">${esc(p.name)}</div></span><span class="score">—</span></div>`).join('');
+  return `
+    <header class="top"><h1>Leaderboard</h1><span class="sub">${TESTS[test].name}</span></header>
+    <main>
+      ${testSeg()}
+      ${ms.length > 1 ? `<div class="chips">${ms.map(k => `<button data-measure="${k}" class="${k === m ? 'on' : ''}">${MEASURES[k].label}</button>`).join('')}</div>` : ''}
+      <div class="list">${rows + rest || '<div class="row">No players</div>'}</div>
+      <div class="note">Best attempt today · ${MEASURES[m].higher ? 'higher' : 'lower'} is better</div>
+    </main>`;
+}
+
+const ALL_MEASURES = [['sprint', 'm5'], ['sprint', 'm20'], ['sprint', 'm30'], ['sprint', 'yd40'], ['agility', 't505'], ['endurance', 'ift']];
+
+function viewResults() {
+  const tops = {};
+  for (const [t, m] of ALL_MEASURES) tops[m] = ranking(t, m)[0]?.best;
+  const rows = players().map(p => `<tr><td>${esc(p.name)}</td>${ALL_MEASURES.map(([t, m]) => {
+    const b = bestToday(t, p.id, m);
+    return `<td class="${b != null && b === tops[m] ? 'top' : ''}">${fmt(m, b)}</td>`;
+  }).join('')}</tr>`).join('');
+  return `
+    <header class="top"><h1>All results</h1><span class="sub">${esc(S.date)}</span></header>
+    <main>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Player</th>${ALL_MEASURES.map(([, m]) => `<th>${MEASURES[m].label}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div class="note">Best attempt per player · green = team best</div>
+      <button class="btn primary" data-act="export-best">Export best results (CSV)</button>
+      <button class="btn ghost" data-act="export-all">Export every attempt (CSV)</button>
+      <div class="gap"></div><div class="gap"></div>
+      <button class="btn ghost small" data-act="reset">Start a new testing day…</button>
+      <div class="note">Results are saved on this phone automatically.</div>
+    </main>`;
+}
+
+// ---------- actions ----------
+function parseNum(s) {
+  s = String(s).trim().replace(',', '.');
+  if (!s) return null;
+  const n = Number(s);
+  return isFinite(n) ? n : NaN;
+}
+
+function submitEntry(form) {
+  const test = S.test, ms = TESTS[test].measures, a = {};
+  const odd = [];
+  for (const m of ms) {
+    const v = parseNum(form.elements[m].value);
+    if (Number.isNaN(v)) { alert(`${MEASURES[m].label}: "${form.elements[m].value}" is not a number.`); form.elements[m].focus(); return; }
+    if (v != null) {
+      a[m] = v;
+      if (v < MEASURES[m].min || v > MEASURES[m].max) odd.push(`${MEASURES[m].label} ${v} ${MEASURES[m].unit}`);
+    }
+  }
+  if (!Object.keys(a).length) { toast('Enter at least one result'); form.elements[ms[0]].focus(); return; }
+  if (odd.length && !confirm(`This looks unusual:\n${odd.join('\n')}\n\nSave anyway?`)) return;
+
+  const list = S.results[test][V.pid] = attemptsOf(test, V.pid).slice();
+  let idx;
+  if (V.editIdx != null) { list[V.editIdx] = a; idx = V.editIdx; }
+  else { list.push(a); idx = list.length - 1; }
+  persist();
+  V.editIdx = null;
+  V.feedback = { idx };
+  render();
+  window.scrollTo(0, 0);
+}
+
+function download(name, rows) {
+  const csv = rows.map(r => r.map(c => {
+    const s = c == null ? '' : String(c);
+    return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = name;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+const header = ['Date', 'Player', 'Guest'].concat(ALL_MEASURES.map(([, m]) => `${MEASURES[m].label} (${MEASURES[m].unit})`));
+
+function exportBest() {
+  const rows = [header];
+  for (const p of players()) rows.push([S.date, p.name, p.guest ? 'yes' : ''].concat(ALL_MEASURES.map(([t, m]) => {
+    const b = bestToday(t, p.id, m); return b == null ? '' : fmt(m, b);
+  })));
+  download(`ITP_testing_best_${S.date}.csv`, rows);
+}
+
+function exportAll() {
+  const rows = [['Date', 'Player', 'Guest', 'Test', 'Attempt'].concat(ALL_MEASURES.map(([, m]) => `${MEASURES[m].label} (${MEASURES[m].unit})`))];
+  for (const [t, def] of Object.entries(TESTS))
+    for (const p of players())
+      attemptsOf(t, p.id).forEach((a, i) => rows.push([S.date, p.name, p.guest ? 'yes' : '', def.name, i + 1]
+        .concat(ALL_MEASURES.map(([, m]) => a[m] == null ? '' : fmt(m, a[m])))));
+  download(`ITP_testing_attempts_${S.date}.csv`, rows);
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.tab) { V.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.test) { S.test = d.test; persist(); render(); return; }
+  if (d.measure) { V.boardMeasure[S.test] = d.measure; render(); return; }
+  if (d.step) { S.attempts[S.test] = Math.max(1, Math.min(6, S.attempts[S.test] + Number(d.step))); persist(); render(); return; }
+  if (d.open) { V.pid = d.open; V.editIdx = null; V.feedback = null; render(); window.scrollTo(0, 0); focusFirst(); return; }
+  if (d.edit != null) { V.editIdx = Number(d.edit); V.feedback = null; render(); focusFirst(); return; }
+  switch (d.act) {
+    case 'back': V.pid = null; V.feedback = null; V.editIdx = null; render(); return;
+    case 'next': V.pid = d.next; V.feedback = null; V.editIdx = null; render(); window.scrollTo(0, 0); focusFirst(); return;
+    case 'another': V.feedback = null; V.editIdx = null; render(); focusFirst(); return;
+    case 'cancel-edit': V.editIdx = null; render(); return;
+    case 'delete': {
+      if (!confirm(`Delete attempt ${V.editIdx + 1}?`)) return;
+      const list = attemptsOf(S.test, V.pid).slice(); list.splice(V.editIdx, 1);
+      S.results[S.test][V.pid] = list; persist(); V.editIdx = null; render(); toast('Attempt deleted'); return;
+    }
+    case 'add-player': {
+      const name = (prompt('Player name (guest / trial):') || '').trim();
+      if (!name) return;
+      S.extra.push({ id: 'g' + Date.now(), name, guest: true }); persist(); render(); toast(name + ' added');
+      return;
+    }
+    case 'export-best': exportBest(); return;
+    case 'export-all': exportAll(); return;
+    case 'reset': {
+      if (!confirm('Clear ALL results and guests to start a new testing day?\n\nExport first if you haven\'t.')) return;
+      if (!confirm('Are you sure? This cannot be undone.')) return;
+      S = freshState(); persist(); V.tab = 'record'; render(); toast('New testing day started'); return;
+    }
+  }
+});
+
+document.addEventListener('submit', e => { e.preventDefault(); submitEntry(e.target); });
+// "next" key on the keypad moves to the following box
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  const inputs = [...document.querySelectorAll('#entry input')];
+  const i = inputs.indexOf(e.target);
+  if (i < inputs.length - 1) { e.preventDefault(); inputs[i + 1].focus(); }
+});
+
+function focusFirst() { setTimeout(() => { const i = document.querySelector('#entry input'); if (i) i.focus(); }, 50); }
+
+render();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
